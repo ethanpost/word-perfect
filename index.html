@@ -55,32 +55,34 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
   padding:.4rem 1rem;border-radius:20px;font-size:1.05rem;font-weight:600;
   margin-bottom:1rem;
 }
-
-.attempt-boxes{display:flex;gap:.6rem;margin-bottom:.85rem}
-.attempt-box{
-  width:42px;height:42px;border-radius:8px;border:2px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.3rem;font-weight:700;color:transparent;
-  background:var(--surface);transition:all .3s ease;
+.question-counter{
+  margin-bottom:.75rem;
+  color:var(--text-muted);
+  font-size:.9rem;
+  font-weight:600;
 }
-.attempt-box.used{
-  border-color:var(--error);background:#fef2f2;color:var(--error);
-  animation:popIn .3s ease;
+.quiz-meta{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:.75rem;
+  margin-bottom:.75rem;
+  flex-wrap:wrap;
 }
-@keyframes popIn{
-  0%{transform:scale(.6);opacity:0}
-  60%{transform:scale(1.15)}
-  100%{transform:scale(1);opacity:1}
+.quiz-version{
+  color:var(--text-muted);
+  font-size:.9rem;
+  font-weight:600;
 }
 
 .feedback{margin-top:1rem;padding:1rem;border-radius:8px;line-height:1.7;font-size:.95rem}
 .feedback.correct{background:#dcfce7;border:1px solid #86efac;color:#166534}
 .feedback.incorrect{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
 
-.feedback .word-ok{color:#166534}
-.feedback .word-wrong{background:#fecaca;color:#991b1b;padding:1px 4px;border-radius:4px;font-weight:600;text-decoration:line-through}
-.feedback .word-extra{background:#fed7aa;color:#9a3412;padding:1px 4px;border-radius:4px;font-weight:600;text-decoration:line-through}
-.feedback .word-missing{background:#e0e7ff;color:#3730a3;padding:1px 4px;border-radius:4px;font-style:italic}
+.word-ok{color:#166534}
+.word-wrong{background:#fecaca;color:#991b1b;padding:1px 4px;border-radius:4px;font-weight:600;text-decoration:line-through}
+.word-extra{background:#fed7aa;color:#9a3412;padding:1px 4px;border-radius:4px;font-weight:600;text-decoration:line-through}
+.word-missing{background:#e0e7ff;color:#3730a3;padding:1px 4px;border-radius:4px;font-style:italic}
 
 .progress-bar-wrap{background:#e5e7eb;border-radius:20px;height:8px;margin-bottom:1.25rem;overflow:hidden}
 .progress-bar-fill{height:100%;background:var(--primary);border-radius:20px;transition:width .3s}
@@ -100,11 +102,14 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .pct-circle.fail{border-color:var(--error);color:var(--error)}
 
 .verse-list{margin-top:1rem}
-.verse-item{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.9rem}
+.verse-item{padding:.6rem 0;border-bottom:1px solid var(--border);font-size:.9rem}
 .verse-item:last-child{border:none}
 .verse-status{font-weight:700;font-size:.8rem;padding:2px 8px;border-radius:12px}
 .verse-status.pass{background:#dcfce7;color:#166534}
 .verse-status.fail{background:#fef2f2;color:#991b1b}
+.verse-item-row{display:flex;justify-content:space-between;align-items:center;gap:.75rem}
+.verse-detail{margin-top:.5rem;padding:.55rem .65rem;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0}
+.verse-detail strong{display:block;margin-bottom:.15rem}
 
 @media(max-width:480px){
   body{padding:.5rem}
@@ -143,13 +148,12 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
   <div id="screen-quiz" class="screen">
     <div class="card">
       <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill"></div></div>
-      <div class="ref-badge" id="verse-ref"></div>
-      <div class="attempt-boxes" id="attempt-boxes">
-        <div class="attempt-box" id="attempt-1"></div>
-        <div class="attempt-box" id="attempt-2"></div>
-        <div class="attempt-box" id="attempt-3"></div>
+      <div class="quiz-meta">
+        <div class="question-counter" id="question-counter"></div>
+        <div class="quiz-version" id="quiz-version"></div>
       </div>
-      <textarea id="answer-input" placeholder="Type the verse from memory…" spellcheck="false"></textarea>
+      <div class="ref-badge" id="verse-ref"></div>
+      <textarea id="answer-input" placeholder="Type the verse from memory…" spellcheck="true"></textarea>
       <div id="feedback" class="feedback" style="display:none"></div>
       <div class="btn-row">
         <button class="btn btn-primary" id="btn-submit">Submit</button>
@@ -219,7 +223,7 @@ const VERSES = {
 };
 
 (function() {
-  const MAX_ATTEMPTS = 3;
+  const MAX_ATTEMPTS = 1;
   const STORAGE_KEY = 'wordPerfectStateV1';
 
   const $ = id => document.getElementById(id);
@@ -232,7 +236,6 @@ const VERSES = {
   let currentAttempt = 1;
   let results = [];
   let totalAttempts = 0;
-  let awaitingManualAdvance = false;
   let activeScreenId = 'screen-setup';
 
   function showScreen(id) {
@@ -240,17 +243,6 @@ const VERSES = {
     $(id).classList.add('active');
     activeScreenId = id;
     saveState();
-  }
-
-  function getFailedAttemptCount() {
-    if (awaitingManualAdvance) return MAX_ATTEMPTS;
-    return Math.max(0, currentAttempt - 1);
-  }
-
-  function applyAttemptBoxesFromState() {
-    resetAttemptBoxes();
-    const failedAttempts = getFailedAttemptCount();
-    for (let i = 1; i <= failedAttempts; i++) markAttemptFailed(i);
   }
 
   function collectUiState() {
@@ -262,7 +254,6 @@ const VERSES = {
       submitText: $('btn-submit').textContent,
       feedbackVisible: feedback.style.display === 'block',
       feedbackClassName: feedback.className,
-      feedbackHtml: feedback.innerHTML,
       setupName: $('student-name').value,
       setupVersion: $('version-select').value
     };
@@ -276,7 +267,6 @@ const VERSES = {
       currentAttempt,
       results,
       totalAttempts,
-      awaitingManualAdvance,
       ui: collectUiState()
     };
     try {
@@ -319,7 +309,6 @@ const VERSES = {
     currentAttempt = Number.isInteger(state.currentAttempt) ? state.currentAttempt : 1;
     results = Array.isArray(state.results) ? state.results : [];
     totalAttempts = Number.isInteger(state.totalAttempts) ? state.totalAttempts : 0;
-    awaitingManualAdvance = !!state.awaitingManualAdvance;
 
     if (!selectedVersion || !VERSES[selectedVersion]) {
       showScreen('screen-setup');
@@ -336,15 +325,16 @@ const VERSES = {
 
     if (restoredScreen === 'screen-quiz') {
       showScreen('screen-quiz');
+      updateQuizVersionLabel();
+      updateQuestionCounter();
       $('verse-ref').textContent = verses[currentIndex].ref;
       updateProgress();
-      applyAttemptBoxesFromState();
       $('answer-input').value = state.ui.answerInput || '';
       $('answer-input').disabled = !!state.ui.answerDisabled;
       $('btn-submit').textContent = state.ui.submitText || 'Submit';
       $('feedback').style.display = state.ui.feedbackVisible ? 'block' : 'none';
       $('feedback').className = state.ui.feedbackClassName || 'feedback';
-      $('feedback').innerHTML = state.ui.feedbackHtml || '';
+      $('feedback').textContent = state.ui.feedbackVisible ? 'Saved in-progress answer.' : '';
     } else if (restoredScreen === 'screen-results') {
       showScreen('screen-results');
       showResults();
@@ -373,16 +363,14 @@ const VERSES = {
       currentAttempt = 1;
       results = [];
       totalAttempts = 0;
-      awaitingManualAdvance = false;
       $('student-name').value = '';
       showScreen('screen-setup');
       clearSavedState();
     });
 
-    $('answer-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitAnswer(); }
-    });
     $('answer-input').addEventListener('input', saveState);
+    $('answer-input').addEventListener('paste', e => e.preventDefault());
+    $('answer-input').addEventListener('drop', e => e.preventDefault());
     $('student-name').addEventListener('input', saveState);
     $('version-select').addEventListener('change', saveState);
 
@@ -407,36 +395,31 @@ const VERSES = {
   }
 
   function loadVerse() {
+    updateQuizVersionLabel();
+    updateQuestionCounter();
     $('verse-ref').textContent = verses[currentIndex].ref;
-    resetAttemptBoxes();
     $('answer-input').value = '';
     $('answer-input').disabled = false;
     $('feedback').style.display = 'none';
     $('feedback').innerHTML = '';
     $('btn-submit').textContent = 'Submit';
-    awaitingManualAdvance = false;
     updateProgress();
     $('answer-input').focus();
     saveState();
   }
 
-  function resetAttemptBoxes() {
-    for (let i = 1; i <= MAX_ATTEMPTS; i++) {
-      const box = $('attempt-' + i);
-      box.className = 'attempt-box';
-      box.textContent = '';
-    }
-  }
-
-  function markAttemptFailed(num) {
-    const box = $('attempt-' + num);
-    box.classList.add('used');
-    box.textContent = '✕';
-  }
-
   function updateProgress() {
     const pct = ((currentIndex) / verses.length) * 100;
     $('progress-fill').style.width = pct + '%';
+  }
+
+  function updateQuestionCounter() {
+    const num = Math.min(currentIndex + 1, verses.length);
+    $('question-counter').textContent = 'Question ' + num + ' of ' + verses.length;
+  }
+
+  function updateQuizVersionLabel() {
+    $('quiz-version').textContent = 'Version: ' + selectedVersion;
   }
 
   function normalize(str) {
@@ -456,41 +439,74 @@ const VERSES = {
   }
 
   function computeLCS(a, b) {
-    const m = a.length, n = b.length;
-    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
-    for (let i = 1; i <= m; i++)
-      for (let j = 1; j <= n; j++)
-        dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
-
-    const matched = new Set();
-    const matchedB = new Set();
-    let i = m, j = n;
-    while (i > 0 && j > 0) {
-      if (a[i-1] === b[j-1]) { matched.add(i-1); matchedB.add(j-1); i--; j--; }
-      else if (dp[i-1][j] >= dp[i][j-1]) i--;
-      else j--;
+    const m = a.length;
+    const n = b.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] = a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1] + 1
+          : Math.max(dp[i - 1][j], dp[i][j - 1]);
+      }
     }
-    return { matched, matchedB, lcsLen: dp[m][n] };
+
+    const matchedInput = new Set();
+    const matchedExpected = new Set();
+    let i = m;
+    let j = n;
+    while (i > 0 && j > 0) {
+      if (a[i - 1] === b[j - 1]) {
+        matchedInput.add(i - 1);
+        matchedExpected.add(j - 1);
+        i--;
+        j--;
+      } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+        i--;
+      } else {
+        j--;
+      }
+    }
+    return { matchedInput, matchedExpected };
   }
 
   function rawTokenize(str) {
     const parts = [];
-    const re = /(\s+)/;
-    const chunks = str.split(re);
-    chunks.forEach(c => {
-      if (!c) return;
-      if (/^\s+$/.test(c)) parts.push({ type: 'space', raw: c });
-      else parts.push({ type: 'word', raw: c });
+    const chunks = (str || '').split(/(\s+)/);
+    chunks.forEach(chunk => {
+      if (!chunk) return;
+      if (/^\s+$/.test(chunk)) parts.push({ type: 'space', raw: chunk });
+      else parts.push({ type: 'word', raw: chunk });
     });
     return parts;
   }
 
-  function submitAnswer() {
-    if (awaitingManualAdvance) {
-      nextVerse();
-      return;
-    }
+  function highlightIncorrectEntry(enteredText, expectedText) {
+    const inputTokens = tokenize(enteredText || '');
+    const expectedTokens = tokenize(expectedText || '');
+    const { matchedInput, matchedExpected } = computeLCS(inputTokens, expectedTokens);
 
+    const parts = rawTokenize(enteredText || '');
+    let tokenIndex = 0;
+    let html = '';
+    parts.forEach(part => {
+      if (part.type === 'space') {
+        html += ' ';
+        return;
+      }
+      const cls = matchedInput.has(tokenIndex) ? 'word-ok' : 'word-wrong';
+      html += '<span class="' + cls + '">' + escHtml(part.raw) + '</span>';
+      tokenIndex++;
+    });
+
+    const missing = expectedTokens.length - matchedExpected.size;
+    if (missing > 0) {
+      const plural = missing === 1 ? 'word' : 'words';
+      html += '<br><span class="word-missing">' + missing + ' missing ' + plural + '</span>';
+    }
+    return html;
+  }
+
+  function submitAnswer() {
     const input = $('answer-input').value.trim();
     if (!input) { $('answer-input').focus(); return; }
 
@@ -503,66 +519,26 @@ const VERSES = {
                       correctTokens.every((w, i) => w === studentTokens[i]);
 
     const fb = $('feedback');
-    fb.style.display = 'block';
+    fb.style.display = 'none';
+    fb.textContent = '';
+    fb.className = 'feedback';
 
     if (isCorrect) {
-      fb.className = 'feedback correct';
-      fb.textContent = 'Perfect! Well done.';
       results.push({ ref: verses[currentIndex].ref, passed: true, attempts: currentAttempt });
       saveState();
-      setTimeout(nextVerse, 1200);
+      setTimeout(nextVerse, 150);
       return;
     }
 
-    markAttemptFailed(currentAttempt);
-
-    if (currentAttempt >= MAX_ATTEMPTS) {
-      fb.className = 'feedback incorrect';
-      fb.innerHTML = buildHighlightedFeedback(correctTokens, studentTokens, input) +
-                     '<br><strong>No attempts remaining.</strong>' +
-                     '<br><strong>Correct answer:</strong> ' + escHtml(verses[currentIndex].text);
-      results.push({ ref: verses[currentIndex].ref, passed: false, attempts: currentAttempt });
-      $('answer-input').disabled = true;
-      $('btn-submit').textContent = 'Next Question';
-      awaitingManualAdvance = true;
-      saveState();
-      return;
-    }
-
-    fb.className = 'feedback incorrect';
-    fb.innerHTML = buildHighlightedFeedback(correctTokens, studentTokens, input);
-    currentAttempt++;
-    saveState();
-  }
-
-  function buildHighlightedFeedback(correctTokens, studentTokens, rawInput) {
-    const { matched, matchedB, lcsLen } = computeLCS(studentTokens, correctTokens);
-    const missing = correctTokens.length - matchedB.size;
-
-    const rawParts = rawTokenize(rawInput);
-    let wordIdx = 0;
-    let html = '';
-
-    rawParts.forEach(part => {
-      if (part.type === 'space') {
-        html += ' ';
-      } else {
-        if (matched.has(wordIdx)) {
-          html += '<span class="word-ok">' + escHtml(part.raw) + '</span>';
-        } else {
-          html += '<span class="word-wrong">' + escHtml(part.raw) + '</span>';
-        }
-        wordIdx++;
-      }
+    results.push({
+      ref: verses[currentIndex].ref,
+      passed: false,
+      attempts: currentAttempt,
+      entered: input,
+      expected: verses[currentIndex].text
     });
-
-    if (missing > 0) {
-      html += '<br>';
-      const plural = missing > 1 ? 'words' : 'word';
-      html += '<span class="word-missing">' + missing + ' missing ' + plural + '</span>';
-    }
-
-    return html;
+    saveState();
+    setTimeout(nextVerse, 150);
   }
 
   function escHtml(s) {
@@ -604,8 +580,13 @@ const VERSES = {
       item.className = 'verse-item';
       const statusClass = r.passed ? 'pass' : 'fail';
       const statusText = r.passed ? 'Passed' : 'Failed';
-      item.innerHTML = '<span>' + escHtml(r.ref) + ' <small style="color:var(--text-muted)">(' + r.attempts + (r.attempts === 1 ? ' attempt' : ' attempts') + ')</small></span>' +
-                        '<span class="verse-status ' + statusClass + '">' + statusText + '</span>';
+      let html = '<div class="verse-item-row"><span>' + escHtml(r.ref) + ' <small style="color:var(--text-muted)">(' + r.attempts + (r.attempts === 1 ? ' attempt' : ' attempts') + ')</small></span>' +
+                 '<span class="verse-status ' + statusClass + '">' + statusText + '</span></div>';
+      if (!r.passed) {
+        html += '<div class="verse-detail"><strong>Expected:</strong>' + escHtml(r.expected || '') +
+                '<strong>Your entry:</strong>' + highlightIncorrectEntry(r.entered || '', r.expected || '') + '</div>';
+      }
+      item.innerHTML = html;
       list.appendChild(item);
     });
 
