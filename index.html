@@ -92,6 +92,25 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .results-table th{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted)}
 .results-table td{font-size:1rem}
 .results-table .val{font-weight:700}
+.record-block{
+  margin:.75rem 0 1rem;
+  padding:.8rem;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:#f8fafc;
+}
+.record-title{
+  font-weight:700;
+  color:var(--primary);
+  margin-bottom:.45rem;
+}
+.record-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:.35rem .9rem;
+  font-size:.9rem;
+}
+.record-grid b{font-weight:700}
 
 .pct-display{text-align:center;margin:1.5rem 0}
 .pct-circle{
@@ -116,6 +135,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
   .card{padding:1rem}
   header h1{font-size:1.4rem}
   .btn{padding:.6rem 1.2rem;font-size:.9rem}
+  .record-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -137,6 +157,10 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       <div class="field">
         <label for="version-select">Bible Version</label>
         <select id="version-select"></select>
+      </div>
+      <div class="field">
+        <label for="proctor-name">Proctor Name (Signature)</label>
+        <input type="text" id="proctor-name" placeholder="Enter proctor name" autocomplete="off">
       </div>
       <div class="btn-row">
         <button class="btn btn-primary" id="btn-start">Begin Test</button>
@@ -165,6 +189,17 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
   <div id="screen-results" class="screen">
     <div class="card">
       <h2>Results</h2>
+      <div class="record-block">
+        <div class="record-title">Test Record</div>
+        <div class="record-grid">
+          <div><b>Student:</b> <span id="record-student"></span></div>
+          <div><b>Proctor:</b> <span id="record-proctor"></span></div>
+          <div><b>Version:</b> <span id="record-version"></span></div>
+          <div><b>Started:</b> <span id="record-started"></span></div>
+          <div><b>Completed:</b> <span id="record-completed"></span></div>
+          <div><b>Duration:</b> <span id="record-duration"></span></div>
+        </div>
+      </div>
       <div class="pct-display"><div class="pct-circle" id="pct-circle">0%</div></div>
       <table class="results-table">
         <tr><th>Student</th><td class="val" id="res-name"></td></tr>
@@ -230,12 +265,15 @@ const VERSES = {
   const screens = document.querySelectorAll('.screen');
 
   let studentName = '';
+  let proctorName = '';
   let selectedVersion = '';
   let verses = [];
   let currentIndex = 0;
   let currentAttempt = 1;
   let results = [];
   let totalAttempts = 0;
+  let testStartedAt = '';
+  let testCompletedAt = '';
   let activeScreenId = 'screen-setup';
 
   function showScreen(id) {
@@ -255,7 +293,8 @@ const VERSES = {
       feedbackVisible: feedback.style.display === 'block',
       feedbackClassName: feedback.className,
       setupName: $('student-name').value,
-      setupVersion: $('version-select').value
+      setupVersion: $('version-select').value,
+      setupProctor: $('proctor-name').value
     };
   }
 
@@ -267,6 +306,9 @@ const VERSES = {
       currentAttempt,
       results,
       totalAttempts,
+      proctorName,
+      testStartedAt,
+      testCompletedAt,
       ui: collectUiState()
     };
     try {
@@ -299,16 +341,20 @@ const VERSES = {
     if (!state || !state.ui) return false;
 
     $('student-name').value = state.ui.setupName || '';
+    $('proctor-name').value = state.ui.setupProctor || '';
     if (state.ui.setupVersion && VERSES[state.ui.setupVersion]) {
       $('version-select').value = state.ui.setupVersion;
     }
 
     studentName = state.studentName || '';
+    proctorName = state.proctorName || '';
     selectedVersion = state.selectedVersion || '';
     currentIndex = Number.isInteger(state.currentIndex) ? state.currentIndex : 0;
     currentAttempt = Number.isInteger(state.currentAttempt) ? state.currentAttempt : 1;
     results = Array.isArray(state.results) ? state.results : [];
     totalAttempts = Number.isInteger(state.totalAttempts) ? state.totalAttempts : 0;
+    testStartedAt = state.testStartedAt || '';
+    testCompletedAt = state.testCompletedAt || '';
 
     if (!selectedVersion || !VERSES[selectedVersion]) {
       showScreen('screen-setup');
@@ -363,7 +409,11 @@ const VERSES = {
       currentAttempt = 1;
       results = [];
       totalAttempts = 0;
+      proctorName = '';
+      testStartedAt = '';
+      testCompletedAt = '';
       $('student-name').value = '';
+      $('proctor-name').value = '';
       showScreen('screen-setup');
       clearSavedState();
     });
@@ -372,6 +422,7 @@ const VERSES = {
     $('answer-input').addEventListener('paste', e => e.preventDefault());
     $('answer-input').addEventListener('drop', e => e.preventDefault());
     $('student-name').addEventListener('input', saveState);
+    $('proctor-name').addEventListener('input', saveState);
     $('version-select').addEventListener('change', saveState);
 
     if (!restoreState()) {
@@ -383,12 +434,16 @@ const VERSES = {
   function startTest() {
     studentName = $('student-name').value.trim();
     if (!studentName) { $('student-name').focus(); return; }
+    proctorName = $('proctor-name').value.trim();
+    if (!proctorName) { $('proctor-name').focus(); return; }
     selectedVersion = $('version-select').value;
     verses = VERSES[selectedVersion];
     currentIndex = 0;
     currentAttempt = 1;
     totalAttempts = 0;
     results = [];
+    testStartedAt = new Date().toISOString();
+    testCompletedAt = '';
     showScreen('screen-quiz');
     loadVerse();
     saveState();
@@ -420,6 +475,24 @@ const VERSES = {
 
   function updateQuizVersionLabel() {
     $('quiz-version').textContent = 'Version: ' + selectedVersion;
+  }
+
+  function formatDateTime(isoValue) {
+    if (!isoValue) return '-';
+    const d = new Date(isoValue);
+    if (Number.isNaN(d.getTime())) return '-';
+    return d.toLocaleString();
+  }
+
+  function formatDuration(ms) {
+    if (!Number.isFinite(ms) || ms < 0) return '-';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return hours + 'h ' + minutes + 'm ' + seconds + 's';
+    if (minutes > 0) return minutes + 'm ' + seconds + 's';
+    return seconds + 's';
   }
 
   function normalize(str) {
@@ -558,9 +631,15 @@ const VERSES = {
 
   function showResults() {
     showScreen('screen-results');
+    if (!testCompletedAt) testCompletedAt = new Date().toISOString();
     const passed = results.filter(r => r.passed).length;
     const failed = results.filter(r => !r.passed).length;
     const pct = Math.round((passed / results.length) * 100);
+    const startMs = testStartedAt ? new Date(testStartedAt).getTime() : NaN;
+    const endMs = testCompletedAt ? new Date(testCompletedAt).getTime() : NaN;
+    const duration = Number.isFinite(startMs) && Number.isFinite(endMs)
+      ? formatDuration(endMs - startMs)
+      : '-';
 
     $('res-name').textContent = studentName;
     $('res-version').textContent = selectedVersion;
@@ -568,6 +647,12 @@ const VERSES = {
     $('res-passed').textContent = passed;
     $('res-failed').textContent = failed;
     $('res-attempts').textContent = totalAttempts;
+    $('record-student').textContent = studentName || '-';
+    $('record-proctor').textContent = proctorName || '-';
+    $('record-version').textContent = selectedVersion || '-';
+    $('record-started').textContent = formatDateTime(testStartedAt);
+    $('record-completed').textContent = formatDateTime(testCompletedAt);
+    $('record-duration').textContent = duration;
 
     const circle = $('pct-circle');
     circle.textContent = pct + '%';
