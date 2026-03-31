@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Perfect — Bible Verse Memory Test</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f3ee;--surface:#fff;--primary:#3d5a80;--primary-light:#5b7faa;
+  --accent:#ee6c4d;--text:#2b2d42;--text-muted:#6b7280;--border:#d1d5db;
+  --success:#16a34a;--error:#dc2626;--warn:#d97706;--radius:10px;
+}
+html{font-size:16px}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;justify-content:center;padding:1rem}
+#app{width:100%;max-width:640px}
+
+header{text-align:center;padding:2rem 0 1rem}
+header h1{font-size:1.75rem;color:var(--primary);letter-spacing:.02em}
+header p{color:var(--text-muted);font-size:.9rem;margin-top:.25rem}
+
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:0 1px 3px rgba(0,0,0,.08);padding:1.5rem;margin-bottom:1rem}
+.card h2{font-size:1.2rem;margin-bottom:1rem;color:var(--primary)}
+
+label{display:block;font-weight:600;margin-bottom:.35rem;font-size:.9rem}
+input[type="text"],select,textarea{
+  width:100%;padding:.65rem .75rem;border:1.5px solid var(--border);border-radius:8px;
+  font-size:1rem;font-family:inherit;transition:border-color .15s;background:#fff;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+textarea{resize:vertical;min-height:120px;line-height:1.6}
+
+.field+.field{margin-top:1rem}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.4rem;
+  padding:.7rem 1.6rem;border:none;border-radius:8px;font-size:1rem;font-weight:600;
+  cursor:pointer;transition:background .15s,transform .1s;font-family:inherit;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-light)}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:#d45a3d}
+.btn-outline{background:transparent;border:1.5px solid var(--primary);color:var(--primary)}
+.btn-outline:hover{background:var(--primary);color:#fff}
+
+.btn-row{display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap}
+
+.screen{display:none}
+.screen.active{display:block}
+
+.ref-badge{
+  display:inline-block;background:var(--primary);color:#fff;
+  padding:.4rem 1rem;border-radius:20px;font-size:1.05rem;font-weight:600;
+  margin-bottom:1rem;
+}
+
+.attempt-boxes{display:flex;gap:.6rem;margin-bottom:.85rem}
+.attempt-box{
+  width:42px;height:42px;border-radius:8px;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;font-weight:700;color:transparent;
+  background:var(--surface);transition:all .3s ease;
+}
+.attempt-box.used{
+  border-color:var(--error);background:#fef2f2;color:var(--error);
+  animation:popIn .3s ease;
+}
+@keyframes popIn{
+  0%{transform:scale(.6);opacity:0}
+  60%{transform:scale(1.15)}
+  100%{transform:scale(1);opacity:1}
+}
+
+.feedback{margin-top:1rem;padding:1rem;border-radius:8px;line-height:1.7;font-size:.95rem}
+.feedback.correct{background:#dcfce7;border:1px solid #86efac;color:#166534}
+.feedback.incorrect{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+
+.feedback .word-ok{color:#166534}
+.feedback .word-wrong{background:#fecaca;color:#991b1b;padding:1px 4px;border-radius:4px;font-weight:600;text-decoration:line-through}
+.feedback .word-extra{background:#fed7aa;color:#9a3412;padding:1px 4px;border-radius:4px;font-weight:600;text-decoration:line-through}
+.feedback .word-missing{background:#e0e7ff;color:#3730a3;padding:1px 4px;border-radius:4px;font-style:italic}
+
+.progress-bar-wrap{background:#e5e7eb;border-radius:20px;height:8px;margin-bottom:1.25rem;overflow:hidden}
+.progress-bar-fill{height:100%;background:var(--primary);border-radius:20px;transition:width .3s}
+
+.results-table{width:100%;border-collapse:collapse;margin-top:1rem}
+.results-table th,.results-table td{text-align:left;padding:.6rem .75rem;border-bottom:1px solid var(--border)}
+.results-table th{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted)}
+.results-table td{font-size:1rem}
+.results-table .val{font-weight:700}
+
+.pct-display{text-align:center;margin:1.5rem 0}
+.pct-circle{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:110px;height:110px;border-radius:50%;font-size:2rem;font-weight:800;
+  border:6px solid var(--primary);color:var(--primary);
+}
+.pct-circle.fail{border-color:var(--error);color:var(--error)}
+
+.verse-list{margin-top:1rem}
+.verse-item{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.9rem}
+.verse-item:last-child{border:none}
+.verse-status{font-weight:700;font-size:.8rem;padding:2px 8px;border-radius:12px}
+.verse-status.pass{background:#dcfce7;color:#166534}
+.verse-status.fail{background:#fef2f2;color:#991b1b}
+
+@media(max-width:480px){
+  body{padding:.5rem}
+  .card{padding:1rem}
+  header h1{font-size:1.4rem}
+  .btn{padding:.6rem 1.2rem;font-size:.9rem}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Word Perfect</h1>
+    <p>Bible Verse Memory Test</p>
+  </header>
+
+  <!-- SETUP SCREEN -->
+  <div id="screen-setup" class="screen active">
+    <div class="card">
+      <h2>Get Started</h2>
+      <div class="field">
+        <label for="student-name">Your Name</label>
+        <input type="text" id="student-name" placeholder="Enter your name" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="version-select">Bible Version</label>
+        <select id="version-select"></select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-start">Begin Test</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="screen-quiz" class="screen">
+    <div class="card">
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill"></div></div>
+      <div class="ref-badge" id="verse-ref"></div>
+      <div class="attempt-boxes" id="attempt-boxes">
+        <div class="attempt-box" id="attempt-1"></div>
+        <div class="attempt-box" id="attempt-2"></div>
+        <div class="attempt-box" id="attempt-3"></div>
+      </div>
+      <textarea id="answer-input" placeholder="Type the verse from memory…" spellcheck="false"></textarea>
+      <div id="feedback" class="feedback" style="display:none"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-submit">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="screen-results" class="screen">
+    <div class="card">
+      <h2>Results</h2>
+      <div class="pct-display"><div class="pct-circle" id="pct-circle">0%</div></div>
+      <table class="results-table">
+        <tr><th>Student</th><td class="val" id="res-name"></td></tr>
+        <tr><th>Version</th><td class="val" id="res-version"></td></tr>
+        <tr><th>Total Verses</th><td class="val" id="res-total"></td></tr>
+        <tr><th>Passed</th><td class="val" id="res-passed"></td></tr>
+        <tr><th>Failed</th><td class="val" id="res-failed"></td></tr>
+        <tr><th>Total Attempts</th><td class="val" id="res-attempts"></td></tr>
+      </table>
+      <div class="verse-list" id="verse-list"></div>
+      <div class="btn-row" style="justify-content:center;margin-top:1.5rem">
+        <button class="btn btn-accent" id="btn-restart">Start Over</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const VERSES = {
+  "KJV": [
+    { ref: "Romans 3:10-11", text: "As it is written, There is none righteous, no, not one: There is none that understandeth, there is none that seeketh after God." },
+    { ref: "Romans 3:23", text: "For all have sinned, and come short of the glory of God;" },
+    { ref: "Romans 5:8", text: "But God commendeth his love toward us, in that, while we were yet sinners, Christ died for us." },
+    { ref: "Romans 5:12", text: "Wherefore, as by one man sin entered into the world, and death by sin; and so death passed upon all men, for that all have sinned:" },
+    { ref: "Romans 6:23", text: "For the wages of sin is death; but the gift of God is eternal life through Jesus Christ our Lord." },
+    { ref: "Romans 10:9-10", text: "That if thou shalt confess with thy mouth the Lord Jesus, and shalt believe in thine heart that God hath raised him from the dead, thou shalt be saved. For with the heart man believeth unto righteousness; and with the mouth confession is made unto salvation." },
+    { ref: "Romans 10:13", text: "For whosoever shall call upon the name of the Lord shall be saved." }
+  ],
+  "NIV": [
+    { ref: "Romans 3:10-11", text: "As it is written: There is no one righteous, not even one; there is no one who understands; there is no one who seeks God." },
+    { ref: "Romans 3:23", text: "for all have sinned and fall short of the glory of God," },
+    { ref: "Romans 5:8", text: "But God demonstrates his own love for us in this: While we were still sinners, Christ died for us." },
+    { ref: "Romans 5:12", text: "Therefore, just as sin entered the world through one man, and death through sin, and in this way death came to all people, because all sinned-" },
+    { ref: "Romans 6:23", text: "For the wages of sin is death, but the gift of God is eternal life in Christ Jesus our Lord." },
+    { ref: "Romans 10:9-10", text: "If you declare with your mouth, Jesus is Lord, and believe in your heart that God raised him from the dead, you will be saved. For it is with your heart that you believe and are justified, and it is with your mouth that you profess your faith and are saved." },
+    { ref: "Romans 10:13", text: "for, Everyone who calls on the name of the Lord will be saved." }
+  ],
+  "ESV": [
+    { ref: "Romans 3:10-11", text: "as it is written: None is righteous, no, not one; no one understands; no one seeks for God." },
+    { ref: "Romans 3:23", text: "for all have sinned and fall short of the glory of God," },
+    { ref: "Romans 5:8", text: "but God shows his love for us in that while we were still sinners, Christ died for us." },
+    { ref: "Romans 5:12", text: "Therefore, just as sin came into the world through one man, and death through sin, and so death spread to all men because all sinned-" },
+    { ref: "Romans 6:23", text: "For the wages of sin is death, but the free gift of God is eternal life in Christ Jesus our Lord." },
+    { ref: "Romans 10:9-10", text: "because, if you confess with your mouth that Jesus is Lord and believe in your heart that God raised him from the dead, you will be saved. For with the heart one believes and is justified, and with the mouth one confesses and is saved." },
+    { ref: "Romans 10:13", text: "For everyone who calls on the name of the Lord will be saved." }
+  ],
+  "NKJV": [
+    { ref: "Romans 3:10-11", text: "As it is written: There is none righteous, no, not one; There is none who understands; There is none who seeks after God." },
+    { ref: "Romans 3:23", text: "For all have sinned and fall short of the glory of God." },
+    { ref: "Romans 5:8", text: "But God demonstrates His own love toward us, in that while we were still sinners, Christ died for us." },
+    { ref: "Romans 5:12", text: "Therefore, just as through one man sin entered the world, and death through sin, and thus death spread to all men, because all sinned." },
+    { ref: "Romans 6:23", text: "For the wages of sin is death, but the gift of God is eternal life in Christ Jesus our Lord." },
+    { ref: "Romans 10:9-10", text: "That if you confess with your mouth the Lord Jesus and believe in your heart that God has raised Him from the dead, you will be saved. For with the heart one believes unto righteousness, and with the mouth confession is made unto salvation." },
+    { ref: "Romans 10:13", text: "For \"whoever calls on the name of the Lord shall be saved.\"" }
+  ]
+};
+
+(function() {
+  const MAX_ATTEMPTS = 3;
+  const STORAGE_KEY = 'wordPerfectStateV1';
+
+  const $ = id => document.getElementById(id);
+  const screens = document.querySelectorAll('.screen');
+
+  let studentName = '';
+  let selectedVersion = '';
+  let verses = [];
+  let currentIndex = 0;
+  let currentAttempt = 1;
+  let results = [];
+  let totalAttempts = 0;
+  let awaitingManualAdvance = false;
+  let activeScreenId = 'screen-setup';
+
+  function showScreen(id) {
+    screens.forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+    activeScreenId = id;
+    saveState();
+  }
+
+  function getFailedAttemptCount() {
+    if (awaitingManualAdvance) return MAX_ATTEMPTS;
+    return Math.max(0, currentAttempt - 1);
+  }
+
+  function applyAttemptBoxesFromState() {
+    resetAttemptBoxes();
+    const failedAttempts = getFailedAttemptCount();
+    for (let i = 1; i <= failedAttempts; i++) markAttemptFailed(i);
+  }
+
+  function collectUiState() {
+    const feedback = $('feedback');
+    return {
+      activeScreenId,
+      answerInput: $('answer-input').value,
+      answerDisabled: $('answer-input').disabled,
+      submitText: $('btn-submit').textContent,
+      feedbackVisible: feedback.style.display === 'block',
+      feedbackClassName: feedback.className,
+      feedbackHtml: feedback.innerHTML,
+      setupName: $('student-name').value,
+      setupVersion: $('version-select').value
+    };
+  }
+
+  function saveState() {
+    const state = {
+      studentName,
+      selectedVersion,
+      currentIndex,
+      currentAttempt,
+      results,
+      totalAttempts,
+      awaitingManualAdvance,
+      ui: collectUiState()
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (err) {}
+  }
+
+  function clearSavedState() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (err) {}
+  }
+
+  function restoreState() {
+    let raw = null;
+    try {
+      raw = localStorage.getItem(STORAGE_KEY);
+    } catch (err) {
+      return false;
+    }
+    if (!raw) return false;
+
+    let state = null;
+    try {
+      state = JSON.parse(raw);
+    } catch (err) {
+      clearSavedState();
+      return false;
+    }
+    if (!state || !state.ui) return false;
+
+    $('student-name').value = state.ui.setupName || '';
+    if (state.ui.setupVersion && VERSES[state.ui.setupVersion]) {
+      $('version-select').value = state.ui.setupVersion;
+    }
+
+    studentName = state.studentName || '';
+    selectedVersion = state.selectedVersion || '';
+    currentIndex = Number.isInteger(state.currentIndex) ? state.currentIndex : 0;
+    currentAttempt = Number.isInteger(state.currentAttempt) ? state.currentAttempt : 1;
+    results = Array.isArray(state.results) ? state.results : [];
+    totalAttempts = Number.isInteger(state.totalAttempts) ? state.totalAttempts : 0;
+    awaitingManualAdvance = !!state.awaitingManualAdvance;
+
+    if (!selectedVersion || !VERSES[selectedVersion]) {
+      showScreen('screen-setup');
+      return true;
+    }
+
+    verses = VERSES[selectedVersion];
+    if (currentIndex < 0) currentIndex = 0;
+    if (currentIndex >= verses.length) currentIndex = verses.length - 1;
+    if (currentAttempt < 1) currentAttempt = 1;
+    if (currentAttempt > MAX_ATTEMPTS) currentAttempt = MAX_ATTEMPTS;
+
+    const restoredScreen = state.ui.activeScreenId || 'screen-setup';
+
+    if (restoredScreen === 'screen-quiz') {
+      showScreen('screen-quiz');
+      $('verse-ref').textContent = verses[currentIndex].ref;
+      updateProgress();
+      applyAttemptBoxesFromState();
+      $('answer-input').value = state.ui.answerInput || '';
+      $('answer-input').disabled = !!state.ui.answerDisabled;
+      $('btn-submit').textContent = state.ui.submitText || 'Submit';
+      $('feedback').style.display = state.ui.feedbackVisible ? 'block' : 'none';
+      $('feedback').className = state.ui.feedbackClassName || 'feedback';
+      $('feedback').innerHTML = state.ui.feedbackHtml || '';
+    } else if (restoredScreen === 'screen-results') {
+      showScreen('screen-results');
+      showResults();
+    } else {
+      showScreen('screen-setup');
+    }
+
+    return true;
+  }
+
+  function init() {
+    const sel = $('version-select');
+    Object.keys(VERSES).forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    });
+
+    $('btn-start').addEventListener('click', startTest);
+    $('btn-submit').addEventListener('click', submitAnswer);
+    $('btn-restart').addEventListener('click', () => {
+      studentName = '';
+      selectedVersion = '';
+      verses = [];
+      currentIndex = 0;
+      currentAttempt = 1;
+      results = [];
+      totalAttempts = 0;
+      awaitingManualAdvance = false;
+      $('student-name').value = '';
+      showScreen('screen-setup');
+      clearSavedState();
+    });
+
+    $('answer-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitAnswer(); }
+    });
+    $('answer-input').addEventListener('input', saveState);
+    $('student-name').addEventListener('input', saveState);
+    $('version-select').addEventListener('change', saveState);
+
+    if (!restoreState()) {
+      showScreen('screen-setup');
+      saveState();
+    }
+  }
+
+  function startTest() {
+    studentName = $('student-name').value.trim();
+    if (!studentName) { $('student-name').focus(); return; }
+    selectedVersion = $('version-select').value;
+    verses = VERSES[selectedVersion];
+    currentIndex = 0;
+    currentAttempt = 1;
+    totalAttempts = 0;
+    results = [];
+    showScreen('screen-quiz');
+    loadVerse();
+    saveState();
+  }
+
+  function loadVerse() {
+    $('verse-ref').textContent = verses[currentIndex].ref;
+    resetAttemptBoxes();
+    $('answer-input').value = '';
+    $('answer-input').disabled = false;
+    $('feedback').style.display = 'none';
+    $('feedback').innerHTML = '';
+    $('btn-submit').textContent = 'Submit';
+    awaitingManualAdvance = false;
+    updateProgress();
+    $('answer-input').focus();
+    saveState();
+  }
+
+  function resetAttemptBoxes() {
+    for (let i = 1; i <= MAX_ATTEMPTS; i++) {
+      const box = $('attempt-' + i);
+      box.className = 'attempt-box';
+      box.textContent = '';
+    }
+  }
+
+  function markAttemptFailed(num) {
+    const box = $('attempt-' + num);
+    box.classList.add('used');
+    box.textContent = '✕';
+  }
+
+  function updateProgress() {
+    const pct = ((currentIndex) / verses.length) * 100;
+    $('progress-fill').style.width = pct + '%';
+  }
+
+  function normalize(str) {
+    return str
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+      .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+      .replace(/[\u2013\u2014]/g, '-')
+      .toLowerCase();
+  }
+
+  function tokenize(str) {
+    return normalize(str)
+      .split(/\s+/)
+      .map(w => w.replace(/^[^a-z0-9']+|[^a-z0-9']+$/gi, ''))
+      .filter(Boolean);
+  }
+
+  function computeLCS(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    for (let i = 1; i <= m; i++)
+      for (let j = 1; j <= n; j++)
+        dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+
+    const matched = new Set();
+    const matchedB = new Set();
+    let i = m, j = n;
+    while (i > 0 && j > 0) {
+      if (a[i-1] === b[j-1]) { matched.add(i-1); matchedB.add(j-1); i--; j--; }
+      else if (dp[i-1][j] >= dp[i][j-1]) i--;
+      else j--;
+    }
+    return { matched, matchedB, lcsLen: dp[m][n] };
+  }
+
+  function rawTokenize(str) {
+    const parts = [];
+    const re = /(\s+)/;
+    const chunks = str.split(re);
+    chunks.forEach(c => {
+      if (!c) return;
+      if (/^\s+$/.test(c)) parts.push({ type: 'space', raw: c });
+      else parts.push({ type: 'word', raw: c });
+    });
+    return parts;
+  }
+
+  function submitAnswer() {
+    if (awaitingManualAdvance) {
+      nextVerse();
+      return;
+    }
+
+    const input = $('answer-input').value.trim();
+    if (!input) { $('answer-input').focus(); return; }
+
+    totalAttempts++;
+
+    const correctTokens = tokenize(verses[currentIndex].text);
+    const studentTokens = tokenize(input);
+
+    const isCorrect = correctTokens.length === studentTokens.length &&
+                      correctTokens.every((w, i) => w === studentTokens[i]);
+
+    const fb = $('feedback');
+    fb.style.display = 'block';
+
+    if (isCorrect) {
+      fb.className = 'feedback correct';
+      fb.textContent = 'Perfect! Well done.';
+      results.push({ ref: verses[currentIndex].ref, passed: true, attempts: currentAttempt });
+      saveState();
+      setTimeout(nextVerse, 1200);
+      return;
+    }
+
+    markAttemptFailed(currentAttempt);
+
+    if (currentAttempt >= MAX_ATTEMPTS) {
+      fb.className = 'feedback incorrect';
+      fb.innerHTML = buildHighlightedFeedback(correctTokens, studentTokens, input) +
+                     '<br><strong>No attempts remaining.</strong>' +
+                     '<br><strong>Correct answer:</strong> ' + escHtml(verses[currentIndex].text);
+      results.push({ ref: verses[currentIndex].ref, passed: false, attempts: currentAttempt });
+      $('answer-input').disabled = true;
+      $('btn-submit').textContent = 'Next Question';
+      awaitingManualAdvance = true;
+      saveState();
+      return;
+    }
+
+    fb.className = 'feedback incorrect';
+    fb.innerHTML = buildHighlightedFeedback(correctTokens, studentTokens, input);
+    currentAttempt++;
+    saveState();
+  }
+
+  function buildHighlightedFeedback(correctTokens, studentTokens, rawInput) {
+    const { matched, matchedB, lcsLen } = computeLCS(studentTokens, correctTokens);
+    const missing = correctTokens.length - matchedB.size;
+
+    const rawParts = rawTokenize(rawInput);
+    let wordIdx = 0;
+    let html = '';
+
+    rawParts.forEach(part => {
+      if (part.type === 'space') {
+        html += ' ';
+      } else {
+        if (matched.has(wordIdx)) {
+          html += '<span class="word-ok">' + escHtml(part.raw) + '</span>';
+        } else {
+          html += '<span class="word-wrong">' + escHtml(part.raw) + '</span>';
+        }
+        wordIdx++;
+      }
+    });
+
+    if (missing > 0) {
+      html += '<br>';
+      const plural = missing > 1 ? 'words' : 'word';
+      html += '<span class="word-missing">' + missing + ' missing ' + plural + '</span>';
+    }
+
+    return html;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function nextVerse() {
+    currentIndex++;
+    currentAttempt = 1;
+    if (currentIndex >= verses.length) {
+      showResults();
+    } else {
+      loadVerse();
+    }
+    saveState();
+  }
+
+  function showResults() {
+    showScreen('screen-results');
+    const passed = results.filter(r => r.passed).length;
+    const failed = results.filter(r => !r.passed).length;
+    const pct = Math.round((passed / results.length) * 100);
+
+    $('res-name').textContent = studentName;
+    $('res-version').textContent = selectedVersion;
+    $('res-total').textContent = results.length;
+    $('res-passed').textContent = passed;
+    $('res-failed').textContent = failed;
+    $('res-attempts').textContent = totalAttempts;
+
+    const circle = $('pct-circle');
+    circle.textContent = pct + '%';
+    circle.className = 'pct-circle' + (pct < 70 ? ' fail' : '');
+
+    const list = $('verse-list');
+    list.innerHTML = '';
+    results.forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'verse-item';
+      const statusClass = r.passed ? 'pass' : 'fail';
+      const statusText = r.passed ? 'Passed' : 'Failed';
+      item.innerHTML = '<span>' + escHtml(r.ref) + ' <small style="color:var(--text-muted)">(' + r.attempts + (r.attempts === 1 ? ' attempt' : ' attempts') + ')</small></span>' +
+                        '<span class="verse-status ' + statusClass + '">' + statusText + '</span>';
+      list.appendChild(item);
+    });
+
+    $('progress-fill').style.width = '100%';
+    saveState();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
