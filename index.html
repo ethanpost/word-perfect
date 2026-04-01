@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Word Perfect — Bible Verse Memory Test</title>
+<title>Romans Road — Bible Verse Memory Test</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -142,7 +142,7 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 <body>
 <div id="app">
   <header>
-    <h1>Word Perfect</h1>
+    <h1>Romans Road</h1>
     <p>Bible Verse Memory Test</p>
   </header>
 
@@ -218,44 +218,74 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 </div>
 
 <script>
-const VERSES = {
-  "KJV": [
-    { ref: "Romans 3:10-11", text: "As it is written, There is none righteous, no, not one: There is none that understandeth, there is none that seeketh after God." },
-    { ref: "Romans 3:23", text: "For all have sinned, and come short of the glory of God;" },
-    { ref: "Romans 5:8", text: "But God commendeth his love toward us, in that, while we were yet sinners, Christ died for us." },
-    { ref: "Romans 5:12", text: "Wherefore, as by one man sin entered into the world, and death by sin; and so death passed upon all men, for that all have sinned:" },
-    { ref: "Romans 6:23", text: "For the wages of sin is death; but the gift of God is eternal life through Jesus Christ our Lord." },
-    { ref: "Romans 10:9-10", text: "That if thou shalt confess with thy mouth the Lord Jesus, and shalt believe in thine heart that God hath raised him from the dead, thou shalt be saved. For with the heart man believeth unto righteousness; and with the mouth confession is made unto salvation." },
-    { ref: "Romans 10:13", text: "For whosoever shall call upon the name of the Lord shall be saved." }
-  ],
-  "NIV": [
-    { ref: "Romans 3:10-11", text: "As it is written: There is no one righteous, not even one; there is no one who understands; there is no one who seeks God." },
-    { ref: "Romans 3:23", text: "for all have sinned and fall short of the glory of God," },
-    { ref: "Romans 5:8", text: "But God demonstrates his own love for us in this: While we were still sinners, Christ died for us." },
-    { ref: "Romans 5:12", text: "Therefore, just as sin entered the world through one man, and death through sin, and in this way death came to all people, because all sinned-" },
-    { ref: "Romans 6:23", text: "For the wages of sin is death, but the gift of God is eternal life in Christ Jesus our Lord." },
-    { ref: "Romans 10:9-10", text: "If you declare with your mouth, Jesus is Lord, and believe in your heart that God raised him from the dead, you will be saved. For it is with your heart that you believe and are justified, and it is with your mouth that you profess your faith and are saved." },
-    { ref: "Romans 10:13", text: "for, Everyone who calls on the name of the Lord will be saved." }
-  ],
-  "ESV": [
-    { ref: "Romans 3:10-11", text: "as it is written: None is righteous, no, not one; no one understands; no one seeks for God." },
-    { ref: "Romans 3:23", text: "for all have sinned and fall short of the glory of God," },
-    { ref: "Romans 5:8", text: "but God shows his love for us in that while we were still sinners, Christ died for us." },
-    { ref: "Romans 5:12", text: "Therefore, just as sin came into the world through one man, and death through sin, and so death spread to all men because all sinned-" },
-    { ref: "Romans 6:23", text: "For the wages of sin is death, but the free gift of God is eternal life in Christ Jesus our Lord." },
-    { ref: "Romans 10:9-10", text: "because, if you confess with your mouth that Jesus is Lord and believe in your heart that God raised him from the dead, you will be saved. For with the heart one believes and is justified, and with the mouth one confesses and is saved." },
-    { ref: "Romans 10:13", text: "For everyone who calls on the name of the Lord will be saved." }
-  ],
-  "NKJV": [
-    { ref: "Romans 3:10-11", text: "As it is written: There is none righteous, no, not one; There is none who understands; There is none who seeks after God." },
-    { ref: "Romans 3:23", text: "For all have sinned and fall short of the glory of God." },
-    { ref: "Romans 5:8", text: "But God demonstrates His own love toward us, in that while we were still sinners, Christ died for us." },
-    { ref: "Romans 5:12", text: "Therefore, just as through one man sin entered the world, and death through sin, and thus death spread to all men, because all sinned." },
-    { ref: "Romans 6:23", text: "For the wages of sin is death, but the gift of God is eternal life in Christ Jesus our Lord." },
-    { ref: "Romans 10:9-10", text: "That if you confess with your mouth the Lord Jesus and believe in your heart that God has raised Him from the dead, you will be saved. For with the heart one believes unto righteousness, and with the mouth confession is made unto salvation." },
-    { ref: "Romans 10:13", text: "For \"whoever calls on the name of the Lord shall be saved.\"" }
-  ]
-};
+const VERSES = (function versePayload() {
+  const ENCRYPTED_VERSES = {
+    "KJV": [
+      {"ref":"Romans 3:10-11","enc":"FhxSDSRFGxVFFAY/RTsHCFlTNwkRGwpOIhZZOQAcAXAXGwENFxE5RDxORhscT0EaBhtOJAscbU8mDDUXF0YMEFQ4XiEHRgEbAhVUHAEKLhcKIw4cADURGkpFFxwzQypCDwZTDQ4aDE8aIwQNdxwXATsABg5FAhIiVD1CIRoXTQ=="},
+      {"ref":"Romans 3:23","enc":"EQAARDEJHkYNAgIzETwLCBsWB01UCAEKawYWOgpSFzgKABJFDBJ2RScHRhIfDBMNSQAIayIWM1Q="},
+      {"ref":"Romans 5:8","enc":"FRoGRBcKFkYGDBk7VCEGAwEbQwkdGk8CJBMcdxsdEzEXFkYQEFh2WCFCEh0SF01UHgcHJwBZIApSEzUXF0YcBgB2QiYMCBABEE1UKgccIhYNdwsbATRFFAkXQwElHw=="},
+      {"ref":"Romans 5:12","enc":"AAcXFjUDHRQAT1Q3Qm8AH1UcDQRUBA4AaxYQOU8XCiQAAAMBQx04RSBCEh0WQxYbGwMKZ0UYOQtSADUEBg5FAQ12QiYMXVUSDQVUGgBOLwAYIwdSFDEWAQMBQwEmXiFCBxkfQwwRB0NOLQoLdxsaBSRFEwoJQxw3RypCFRwdDQQQUw=="},
+      {"ref":"Romans 6:23","enc":"EQAARCQNF0YSAhMzQm8NAFUACg9UABxOLwAYIwdJRDIQBkYRCxF2ViYEElUcBUEzBgtOIhZZMhsXFj4EHkYJChIzETsKFBoGBAlUIwodPhZZFAcADSMRUgkQEVQaXj0GSA=="},
+      {"ref":"Romans 10:9-10","enc":"AwcTEHAMFEYRCxsjETwKBxkHQwIbBwkLOBZZIAYGDHARGh9FDhsjRSdCEh0WQy0bGwtOAQAKIhxeRDELFkYWCxU6RW8AAxkaBhcRSQYAaxERPgEXRDgAExQRQwA+UDtCIRoXQwkVHQdOOQQQJAoWRDgMH0YDERs7ETsKA1UXBgAQRU8aIwoMdxwaBTwRUgQAQwc3RyoGSFU1DBNUHgYaI0UNPwpSDDUEABJFDhU4ES0HChwWFQQAAU8bJREWdx0bAzgRFwkQEBozQjxZRhQdB0EDABsGaxERMk8fCyURGkYGDBowVDwRDxodQwgHSQIPLwBZIgEGC3AWEwoTAgA/XiFM"},
+      {"ref":"Romans 10:13","enc":"EQAARCcNHRUKBgIzQ28RDhQfD0EXCAMCaxAJOAFSEDgAUggEDhF2XilCEh0WQy0bGwtOOA0YOwNSBjVFAQcTBhB4"}
+    ],
+    "NIV": [
+      {"ref":"Romans 3:10-11","enc":"FhxSDSRFGxVFFAY/RTsHCE9TNwkRGwpOIhZZOQBSCz4AUhQMBBwiVCAXFVlTDQ4ASQoYLgtZOAEXX3ARGgMXBlQ/Qm8MCVUcDQRUHgcBaxAXMwoAFyQEHAIWWFQiWSoQA1UaEEEaBk8BJQBZIAcdRCMAFw0WQzM5VWE="},
+      {"ref":"Romans 3:23","enc":"MQAARDEJHkYNAgIzETwLCBsWB0EVBwtOLQQVO08BDD8XBkYKBVQiWSpCARkcERhUBglODAodew=="},
+      {"ref":"Romans 5:8","enc":"FRoGRBcKFkYBBhk5XzwWFBQHBhJUAQYdawoOOU8eCyYAUgAKEVQjQm8LCFUHCwgHU085IwwVMk8FAXASFxQAQwciWCMORgYaDQ8RGxxCayYRJQYBEHABGwMBQxI5Q28XFVs="},
+      {"ref":"Romans 5:12","enc":"AwcXFjUDHRQAT1Q8RDwWRhQAQxIdB08LJREcJQoWRCQNF0YSDAY6VW8WDgccFgYcSQAALkUUNgFeRDELFkYBBhUiWW8WDgccFgYcSRwHJUlZNgEWRDkLUhINCgd2Ri4bRhEWAhUcSQwPJgBZIwBSBTwJUhYADAQ6VGNCBBAQAhQHDE8PJwlZJAYcCjUBXw=="},
+      {"ref":"Romans 6:23","enc":"EQAARCQNF0YSAhMzQm8NAFUACg9UABxOLwAYIwdeRDIQBkYRCxF2ViYEElUcBUEzBgtOIhZZMhsXFj4EHkYJChIzESYMRjYbEQgHHU8kLhYMJE8dESJFPgkXB1o="},
+      {"ref":"Romans 10:9-10","enc":"HglSHT8QUgIAABg3QypCERwHC0ENBhocawgWIhsaSHAvFxUQEFQ/Qm8uCQcXT0EVBwtOKQAVPgoEAXAMHEYcDAEkEScHBwcHQxUcCBtODAoddx0TDSMAFkYNChl2Vz0NC1UHCwRUDQoPL0lZLgAHRCcMHgpFARF2Qi4UAxFdQycbG08HP0UQJE8FDSQNUh8KFgZ2WSoDFAFTFwkVHU8XJBBZNQoeDTUTF0YEDRB2UD0HRh8GEBUdDwYLL0lZNgEWRDkRUg8WQwM/RSdCHxoGEUEZBhoaI0UNPw4GRCkKB0YVERswVDwRRgwcFhNUDw4HPw1ZNgEWRDEXF0YWAgIzVWE="},
+      {"ref":"Romans 10:13","enc":"MQAASHAgBAMXGhs4VG8VDhpTAAAYBRxOJAtZIwcXRD4EHwNFDBJ2RScHRjkcEQVUHgYCJ0UbMk8BBSYAFkg="}
+    ],
+    "ESV": [
+      {"ref":"Romans 3:10-11","enc":"NhxSDSRFGxVFFAY/RTsHCE9TLQ4aDE8HOEULPggaEDUKBxVJQxo5HW8MCQFTDA8RUk8AJEUWOQpSET4BFxQWFxU4VTxZRhscQw4aDE8dLgASJE8UCyJFNQkBTQ=="},
+      {"ref":"Romans 3:23","enc":"MQAARDEJHkYNAgIzETwLCBsWB0EVBwtOLQQVO08BDD8XBkYKBVQiWSpCARkcERhUBglODAodew=="},
+      {"ref":"Romans 5:8","enc":"NRoGRBcKFkYWCxshQm8KDwZTDw4CDE8IJBdZIhxSDT5FBg4EF1QhWSYOA1UEBkEDDB0LaxYNPgMeRCMMHAgAEQd6EQwKFBwAF0EQAAoKawMWJU8HF34="},
+      {"ref":"Romans 5:12","enc":"AwcXFjUDHRQAT1Q8RDwWRhQAQxIdB08NKggcdwYcED9FBg4AQwM5QyMGRgEbEQ4BDgdOJAscdwITCnxFEwgBQxAzUDsKRgEbEQ4BDgdOOAwXe08TCjRFAQlFBxE3RSdCFQUBBgAQSRsBawQVO08fAT5FEAMGAgElVG8DChlTEAgaBwoKZg=="},
+      {"ref":"Romans 6:23","enc":"EQAARCQNF0YSAhMzQm8NAFUACg9UABxOLwAYIwdeRDIQBkYRCxF2Vz0HA1UUCgcASQAIayIWM08bF3AABgMXDRU6ESMLABBTCg9UKgccIhYNdyUXFyUWUgkQEVQaXj0GSA=="},
+      {"ref":"Romans 10:9-10","enc":"NQoRBSUWF0pFChJ2SCAXRhYcDQcRGhxOPAwNP08LCyUXUgsKFgA+ETsKBwFTKQQHHBxOIhZZGwAAAHAEHAJFARE6WCoUA1UaDUENBhocaw0cNh0GRCQNExJFJBsyET0DDwYWB0EcAAJOLRcWOk8GDDVFFgMEB1h2SCAXRgIaDw1UCwpOOAQPMgtcRBYKAEYSCgA+ETsKA1UbBgAGHU8BJQBZNQoeDTUTFxVFAhoyESYRRh8GEBUdDwYLL0lZNgEWRCcMBg5FFxwzESINEwEbQw4aDE8NJAsfMhwBASNFEwgBQx0lETwDEBAXTQ=="},
+      {"ref":"Romans 10:13","enc":"EQAARDUTFxQcDBozETgKCVUQAg0YGk8BJUUNPwpSCjEIF0YKBVQiWSpCKhoBB0EDAAMCawccdxwTEjUBXA=="}
+    ],
+    "NKJV": [
+      {"ref":"Romans 3:10-11","enc":"FhxSDSRFGxVFFAY/RTsHCE9TNwkRGwpOIhZZOQAcAXAXGwENFxE5RDxORhscT0EaBhtOJAscbE8mDDUXF0YMEFQ4XiEHRgIbDEEBBwsLORYNNgEWF2tFJg4AERF2WDxCCBodBkEDAQBOOAAcPBxSBTYRFxRFJBsyHw=="},
+      {"ref":"Romans 3:23","enc":"EQAARDEJHkYNAgIzETwLCBsWB0EVBwtOLQQVO08BDD8XBkYKBVQiWSpCARkcERhUBglODAodeQ=="},
+      {"ref":"Romans 5:8","enc":"FRoGRBcKFkYBBhk5XzwWFBQHBhJUIQYdawoOOU8eCyYAUhIKFBUkVW8XFVlTCg9UHQcPP0UOPwYeAXASF0YSBgYzETwWDxkfQxIdBwELORZVdywaFjkWBkYBChEyESkNFFUGEE8="},
+      {"ref":"Romans 5:12","enc":"AwcXFjUDHRQAT1Q8RDwWRhQAQxUcGwAbLA1ZOAEXRD0EHEYWChp2VCEWAwcWB0EAAQpOPAoLOwteRDELFkYBBhUiWW8WDgccFgYcSRwHJUlZNgEWRCQNBxVFBxE3RSdCFQUBBgAQSRsBawQVO08fAT5JUgQAABUjQipCBxkfQxIdBwELL0s="},
+      {"ref":"Romans 6:23","enc":"EQAARCQNF0YSAhMzQm8NAFUACg9UABxOLwAYIwdeRDIQBkYRCxF2ViYEElUcBUEzBgtOIhZZMhsXFj4EHkYJChIzESYMRjYbEQgHHU8kLhYMJE8dESJFPgkXB1o="},
+      {"ref":"Romans 10:9-10","enc":"AwcTEHAMFEYcDAF2UiAMABAAEEEDABsGaxwWIh1SCT8QBg5FFxwzEQMNFBFTKQQHHBxOKgsddw0XCDkABANFChp2SCAXFFUbBgAGHU8aIwQNdygdAHANExVFERU/QioGRj0aDkESGwADaxERMk8WATEBXkYcDAF2RiYOClURBkEHCBkLL0tZEQAARCcMBg5FFxwzEScHBwcHQw4aDE8MLgkQMhkXF3AQHBIKQwY/VicWAxoGEA8RGhxCawQXM08FDSQNUhINBlQ7XjoWDlUQDA8SDBwdIgoXdwYBRD0EFgNFFhoiXm8RBxkFAhUdBgFA"},
+      {"ref":"Romans 10:13","enc":"EQAARHISGgkAFREkESwDChkAQw4aSRsGLkUXNgIXRD8DUhINBlQaXj0GRgYbAg0YSQ0LaxYYIQoWSnI="}
+    ]
+  };
+
+  function verseKeyStr() {
+    return String.fromCharCode(87,111,114,100,80,101,114,102,101,99,116,86,49,79,98,102,117,115,99,97,116,105,111,110,75,101,121);
+  }
+
+  function xorDecryptB64(b64) {
+    const binary = atob(b64);
+    const data = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) data[i] = binary.charCodeAt(i);
+    const keyBytes = new TextEncoder().encode(verseKeyStr());
+    const out = new Uint8Array(data.length);
+    for (let i = 0; i < data.length; i++) {
+      out[i] = data[i] ^ keyBytes[i % keyBytes.length];
+    }
+    return new TextDecoder().decode(out);
+  }
+
+  function buildVerseBank() {
+    const bank = {};
+    Object.keys(ENCRYPTED_VERSES).forEach(function(ver) {
+      bank[ver] = ENCRYPTED_VERSES[ver].map(function(item) {
+        return { ref: item.ref, text: xorDecryptB64(item.enc) };
+      });
+    });
+    return bank;
+  }
+
+  return buildVerseBank();
+})();
 
 (function() {
   const MAX_ATTEMPTS = 1;
