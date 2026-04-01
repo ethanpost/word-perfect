@@ -159,8 +159,8 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         <select id="version-select"></select>
       </div>
       <div class="field">
-        <label for="proctor-name">Proctor Name (Signature)</label>
-        <input type="text" id="proctor-name" placeholder="Enter proctor name" autocomplete="off">
+        <label for="proctor-name">Proctor Name (Signature, optional)</label>
+        <input type="text" id="proctor-name" placeholder="Enter proctor name if applicable" autocomplete="off">
       </div>
       <div class="btn-row">
         <button class="btn btn-primary" id="btn-start">Begin Test</button>
@@ -435,7 +435,6 @@ const VERSES = {
     studentName = $('student-name').value.trim();
     if (!studentName) { $('student-name').focus(); return; }
     proctorName = $('proctor-name').value.trim();
-    if (!proctorName) { $('proctor-name').focus(); return; }
     selectedVersion = $('version-select').value;
     verses = VERSES[selectedVersion];
     currentIndex = 0;
