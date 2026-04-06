@@ -87,6 +87,19 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
 .progress-bar-wrap{background:#e5e7eb;border-radius:20px;height:8px;margin-bottom:1.25rem;overflow:hidden}
 .progress-bar-fill{height:100%;background:var(--primary);border-radius:20px;transition:width .3s}
 
+.question-nav{display:flex;justify-content:center;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap}
+.q-dot{
+  width:30px;height:30px;border-radius:50%;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;
+  cursor:pointer;transition:all .15s;background:var(--surface);color:var(--text-muted);
+  font-family:inherit;padding:0;
+}
+.q-dot:hover{border-color:var(--primary-light);color:var(--primary)}
+.q-dot.current{border-color:var(--primary);background:var(--primary);color:#fff}
+.q-dot.answered{border-color:var(--success);background:#dcfce7;color:var(--success)}
+.q-dot.answered.current{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn-row-center{display:flex;justify-content:center;margin-top:.75rem}
+
 .results-table{width:100%;border-collapse:collapse;margin-top:1rem}
 .results-table th,.results-table td{text-align:left;padding:.6rem .75rem;border-bottom:1px solid var(--border)}
 .results-table th{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted)}
@@ -162,7 +175,8 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
       <div class="instructions">
         <p>This test checks whether you can type each Romans Road verse <strong>word for word</strong> in the Bible version you select below.</p>
         <ul>
-          <li>You get <strong>one attempt per verse</strong>. After you submit, the next verse appears. You will <strong>not</strong> see right or wrong until the test is finished.</li>
+          <li>After you submit an answer the next verse appears. You can <strong>go back</strong> to any previous question and change your answer before you complete the test. You will <strong>not</strong> see right or wrong until the test is finished.</li>
+          <li>Once you have answered every question, a <strong>Complete Test</strong> button will appear. Click it to finish and see your results.</li>
           <li>Click <strong>Submit</strong> when you are ready. The Enter key does not submit (you can use it for line breaks in long verses).</li>
           <li>Pasting into the answer box is turned off—type from memory.</li>
           <li>Optional: add a <strong>proctor name</strong> if someone is supervising; it appears on the results page as a simple signature line.</li>
@@ -200,11 +214,16 @@ textarea{resize:vertical;min-height:120px;line-height:1.6}
         <div class="question-counter" id="question-counter"></div>
         <div class="quiz-version" id="quiz-version"></div>
       </div>
+      <div class="question-nav" id="question-nav"></div>
       <div class="ref-badge" id="verse-ref"></div>
       <textarea id="answer-input" placeholder="Type the verse from memory…" spellcheck="true"></textarea>
       <div id="feedback" class="feedback" style="display:none"></div>
-      <div class="btn-row">
+      <div class="btn-row" style="justify-content:space-between">
+        <button class="btn btn-outline" id="btn-prev" style="display:none">&larr; Previous</button>
         <button class="btn btn-primary" id="btn-submit">Submit</button>
+      </div>
+      <div class="btn-row-center">
+        <button class="btn btn-accent" id="btn-complete" style="display:none">Complete Test</button>
       </div>
     </div>
   </div>
@@ -325,6 +344,7 @@ const VERSES = (function versePayload() {
   let currentIndex = 0;
   let currentAttempt = 1;
   let results = [];
+  let answers = [];
   let totalAttempts = 0;
   let testStartedAt = '';
   let testCompletedAt = '';
@@ -359,6 +379,7 @@ const VERSES = (function versePayload() {
       currentIndex,
       currentAttempt,
       results,
+      answers,
       totalAttempts,
       proctorName,
       testStartedAt,
@@ -406,6 +427,7 @@ const VERSES = (function versePayload() {
     currentIndex = Number.isInteger(state.currentIndex) ? state.currentIndex : 0;
     currentAttempt = Number.isInteger(state.currentAttempt) ? state.currentAttempt : 1;
     results = Array.isArray(state.results) ? state.results : [];
+    answers = Array.isArray(state.answers) ? state.answers : [];
     totalAttempts = Number.isInteger(state.totalAttempts) ? state.totalAttempts : 0;
     testStartedAt = state.testStartedAt || '';
     testCompletedAt = state.testCompletedAt || '';
@@ -425,16 +447,18 @@ const VERSES = (function versePayload() {
 
     if (restoredScreen === 'screen-quiz') {
       showScreen('screen-quiz');
+      buildQuestionNav();
       updateQuizVersionLabel();
       updateQuestionCounter();
       $('verse-ref').textContent = verses[currentIndex].ref;
       updateProgress();
-      $('answer-input').value = state.ui.answerInput || '';
-      $('answer-input').disabled = !!state.ui.answerDisabled;
-      $('btn-submit').textContent = state.ui.submitText || 'Submit';
-      $('feedback').style.display = state.ui.feedbackVisible ? 'block' : 'none';
-      $('feedback').className = state.ui.feedbackClassName || 'feedback';
-      $('feedback').textContent = state.ui.feedbackVisible ? 'Saved in-progress answer.' : '';
+      $('answer-input').value = state.ui.answerInput || answers[currentIndex] || '';
+      $('answer-input').disabled = false;
+      $('btn-submit').textContent = 'Submit';
+      $('feedback').style.display = 'none';
+      $('feedback').innerHTML = '';
+      updateNavButtons();
+      updateCompleteButton();
     } else if (restoredScreen === 'screen-results') {
       showScreen('screen-results');
       showResults();
@@ -455,6 +479,8 @@ const VERSES = (function versePayload() {
 
     $('btn-start').addEventListener('click', startTest);
     $('btn-submit').addEventListener('click', submitAnswer);
+    $('btn-prev').addEventListener('click', prevVerse);
+    $('btn-complete').addEventListener('click', completeTest);
     $('btn-restart').addEventListener('click', () => {
       studentName = '';
       selectedVersion = '';
@@ -462,6 +488,7 @@ const VERSES = (function versePayload() {
       currentIndex = 0;
       currentAttempt = 1;
       results = [];
+      answers = [];
       totalAttempts = 0;
       proctorName = '';
       testStartedAt = '';
@@ -495,9 +522,11 @@ const VERSES = (function versePayload() {
     currentAttempt = 1;
     totalAttempts = 0;
     results = [];
+    answers = new Array(verses.length).fill('');
     testStartedAt = new Date().toISOString();
     testCompletedAt = '';
     showScreen('screen-quiz');
+    buildQuestionNav();
     loadVerse();
     saveState();
   }
@@ -506,18 +535,22 @@ const VERSES = (function versePayload() {
     updateQuizVersionLabel();
     updateQuestionCounter();
     $('verse-ref').textContent = verses[currentIndex].ref;
-    $('answer-input').value = '';
+    $('answer-input').value = answers[currentIndex] || '';
     $('answer-input').disabled = false;
     $('feedback').style.display = 'none';
     $('feedback').innerHTML = '';
     $('btn-submit').textContent = 'Submit';
     updateProgress();
+    updateQuestionNav();
+    updateNavButtons();
+    updateCompleteButton();
     $('answer-input').focus();
     saveState();
   }
 
   function updateProgress() {
-    const pct = ((currentIndex) / verses.length) * 100;
+    const answeredCount = answers.filter(a => a != null && a !== '').length;
+    const pct = (answeredCount / verses.length) * 100;
     $('progress-fill').style.width = pct + '%';
   }
 
@@ -636,50 +669,108 @@ const VERSES = (function versePayload() {
     const input = $('answer-input').value.trim();
     if (!input) { $('answer-input').focus(); return; }
 
-    totalAttempts++;
-
-    const correctTokens = tokenize(verses[currentIndex].text);
-    const studentTokens = tokenize(input);
-
-    const isCorrect = correctTokens.length === studentTokens.length &&
-                      correctTokens.every((w, i) => w === studentTokens[i]);
-
-    const fb = $('feedback');
-    fb.style.display = 'none';
-    fb.textContent = '';
-    fb.className = 'feedback';
-
-    if (isCorrect) {
-      results.push({ ref: verses[currentIndex].ref, passed: true, attempts: currentAttempt });
-      saveState();
-      setTimeout(nextVerse, 150);
-      return;
-    }
-
-    results.push({
-      ref: verses[currentIndex].ref,
-      passed: false,
-      attempts: currentAttempt,
-      entered: input,
-      expected: verses[currentIndex].text
-    });
+    answers[currentIndex] = input;
+    updateQuestionNav();
+    updateProgress();
+    updateCompleteButton();
     saveState();
-    setTimeout(nextVerse, 150);
+
+    if (currentIndex < verses.length - 1) {
+      currentIndex++;
+      loadVerse();
+    }
+  }
+
+  function prevVerse() {
+    if (currentIndex <= 0) return;
+    autoSaveCurrent();
+    currentIndex--;
+    loadVerse();
+  }
+
+  function goToQuestion(i) {
+    if (i < 0 || i >= verses.length || i === currentIndex) return;
+    autoSaveCurrent();
+    currentIndex = i;
+    loadVerse();
+  }
+
+  function autoSaveCurrent() {
+    const input = $('answer-input').value.trim();
+    if (input) answers[currentIndex] = input;
+    updateQuestionNav();
+    updateProgress();
+    updateCompleteButton();
+    saveState();
+  }
+
+  function buildQuestionNav() {
+    const nav = $('question-nav');
+    nav.innerHTML = '';
+    verses.forEach(function(v, i) {
+      const dot = document.createElement('button');
+      dot.className = 'q-dot';
+      dot.textContent = i + 1;
+      dot.title = v.ref;
+      dot.addEventListener('click', function() { goToQuestion(i); });
+      nav.appendChild(dot);
+    });
+    updateQuestionNav();
+  }
+
+  function updateQuestionNav() {
+    const dots = $('question-nav').querySelectorAll('.q-dot');
+    dots.forEach(function(dot, i) {
+      dot.className = 'q-dot';
+      if (i === currentIndex) dot.classList.add('current');
+      if (answers[i] != null && answers[i] !== '') dot.classList.add('answered');
+    });
+  }
+
+  function updateNavButtons() {
+    $('btn-prev').style.display = currentIndex > 0 ? '' : 'none';
+  }
+
+  function updateCompleteButton() {
+    const allAnswered = verses.length > 0 && answers.length === verses.length &&
+                        answers.every(function(a) { return a != null && a !== ''; });
+    $('btn-complete').style.display = allAnswered ? '' : 'none';
+  }
+
+  function completeTest() {
+    autoSaveCurrent();
+    if (!confirm('Are you sure you want to complete the test? You cannot change your answers after this.')) return;
+
+    results = [];
+    totalAttempts = 0;
+    verses.forEach(function(verse, i) {
+      const answer = answers[i] || '';
+      totalAttempts++;
+
+      const correctTokens = tokenize(verse.text);
+      const studentTokens = tokenize(answer);
+
+      const isCorrect = correctTokens.length === studentTokens.length &&
+                        correctTokens.every(function(w, j) { return w === studentTokens[j]; });
+
+      if (isCorrect) {
+        results.push({ ref: verse.ref, passed: true, attempts: 1 });
+      } else {
+        results.push({
+          ref: verse.ref,
+          passed: false,
+          attempts: 1,
+          entered: answer,
+          expected: verse.text
+        });
+      }
+    });
+
+    showResults();
   }
 
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function nextVerse() {
-    currentIndex++;
-    currentAttempt = 1;
-    if (currentIndex >= verses.length) {
-      showResults();
-    } else {
-      loadVerse();
-    }
-    saveState();
   }
 
   function showResults() {
